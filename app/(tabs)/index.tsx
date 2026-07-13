@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import Button from '@/components/Button';
-import ImageViewer from '@/components/ImageViewer';
-
 import CircleButton from '@/components/CircleButton';
 import IconButton from '@/components/IconButton';
+import ImageViewer from '@/components/ImageViewer';
+
+import EmojiPicker from '@/components/EmojiPicker';
 
 
 const PlaceholderImage = require('@/assets/images/background-image.png');
@@ -14,6 +15,7 @@ const PlaceholderImage = require('@/assets/images/background-image.png');
 export default function Index() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(undefined);
   const [showAppOptions, setShowAppOptions] = useState<boolean>(false);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -35,7 +37,11 @@ export default function Index() {
   };
 
   const onAddSticker = () => {
-    // we will implement this later
+    setIsModalVisible(true);
+  };
+
+  const onModalClose = () => {
+    setIsModalVisible(false);
   };
 
   const onSaveImageAsync = async () => {
@@ -61,6 +67,9 @@ export default function Index() {
           <Button label="Use this photo" onPress={() => setShowAppOptions(true)} />
         </View>
       )}
+      <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
+        {/* Emoji list component will go here */}
+      </EmojiPicker>
     </View>
   );
 }
