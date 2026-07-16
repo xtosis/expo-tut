@@ -1,4 +1,4 @@
-name: Build Android v0.3
+name: Build Android v0.3.1
 
 on:
   push:
@@ -47,10 +47,17 @@ jobs:
           eas-version: 21.x
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Limit Gradle Memory Allocation
+        run: |
+          mkdir -p android
+          echo "org.gradle.jvmargs=-Xmx2548m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+          echo "org.gradle.daemon=false" >> android/gradle.properties
+
       - name: Local EAS Build
         run: eas build --local --non-interactive --platform android --profile preview
         env:
           EAS_BUILD_VERBOSE: "1"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
