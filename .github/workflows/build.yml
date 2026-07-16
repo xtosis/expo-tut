@@ -1,4 +1,4 @@
-name: Build Android v0.2.1
+name: Build Android v0.3
 
 on:
   push:
@@ -12,10 +12,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (v20)
+      - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm' # Automates local npm registry caching
 
       - name: Setup Java 17 (Zulu)
