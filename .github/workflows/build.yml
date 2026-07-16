@@ -1,4 +1,4 @@
-name: Build Android v0.2
+name: Build Android v0.2.1
 
 on:
   push:
@@ -49,6 +49,8 @@ jobs:
 
       - name: Local EAS Build
         run: eas build --local --non-interactive --platform android --profile preview
+        env:
+          EAS_BUILD_VERBOSE: "1"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
