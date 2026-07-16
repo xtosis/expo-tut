@@ -1,4 +1,4 @@
-name: Build Android v0.7
+name: Build Android v0.3.2
 
 on:
   push:
@@ -7,33 +7,26 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     steps:
-      # Step 1: Maximize build space with a massive 16GB safety buffer on the root partition
-      - name: Maximize Build Space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 16384 # Drastically increased to prevent the runner agent from running out of log space
-          swap-size-mb: 2048     # Slightly increased swap to help handle Gradle memory surges
-          remove-dotnet: 'true'
-          remove-android: 'true' # Wipes massive unneeded SDK pieces to maximize raw storage
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
-
-      # Step 2: Restore the exact empty NDK folder structure that EAS checks for
-      - name: Recreate Android NDK Base Directory
+      # Step 1: Redirect GitHub runner logging space BEFORE it can overflow
+      # This links the restricted diagnostic directory to the massive /tmp system partition
+      - name: Prevent Runner Agent Log Overflow
         run: |
-          sudo mkdir -p /usr/local/lib/android/sdk/ndk/27.3.13750724
-          sudo chmod -R 777 /usr/local/lib/android/sdk
+          sudo mkdir -p /tmp/_diag_logs
+          sudo mkdir -p /home/runner/actions-runner/cached/2.335.1/
+          sudo ln -s /tmp/_diag_logs /home/runner/actions-runner/cached/2.335.1/_diag || true
 
-      # Step 3: Checkout repository
+      # Step 2: Safe repository checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 4: Aggressive targeted cleanup of hidden Linux desktop tool bloat
-      - name: Additional Targeted Cleanup
+      # Step 3: Fast manual space reclamation (No risky drive re-partitioning needed)
+      - name: Targeted Space Optimization
         run: |
+          sudo rm -rf /usr/local/lib/android # Wipes pre-installed Android SDK bloat (~15GB)
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf /usr/local/share/chromium
           sudo rm -rf /opt/hostedtoolcache/CodeQL
@@ -41,39 +34,42 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           df -h
 
-      # Step 5: Setup Node.js (Aligned to standard Node 24 execution)
+      # Step 4: Recreate empty NDK placeholder folder for EAS static validations
+      - name: Recreate Android NDK Base Directory
+        run: |
+          sudo mkdir -p /usr/local/lib/android/sdk/ndk/27.3.13750724
+          sudo chmod -R 777 /usr/local/lib/android
+
+      # Step 5: Setup standard tools
       - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
 
-      # Step 6: Explicitly restore global Yarn binary for Expo CLI installation
       - name: Install Global Yarn
         run: sudo npm install -g yarn
 
-      # Step 7: Setup Java
       - name: Setup Java 17 (Zulu)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # Step 8: Setup Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # Step 6: Package installation
       - name: Install dependencies
         run: npm install
 
-      # Step 9: Setup Expo CLI & EAS CLI
       - name: Setup Expo CLI & EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: 21.x
           token: ${{ secrets.EXPO_TOKEN }}
 
-      # Step 10: Enforce strict constraints on local Gradle builds to prevent cache inflation
+      # Step 7: Apply strict memory limits to the Gradle compiler
       - name: Configure Production Gradle Options
         run: |
           mkdir -p android
@@ -82,14 +78,13 @@ jobs:
           echo "android.defaults.buildfeatures.buildconfig=true" >> android/gradle.properties
           echo "org.gradle.vfs.watch=false" >> android/gradle.properties
 
-      # Step 11: Execute local EAS build
+      # Step 8: Build WITHOUT the verbose flag to suppress diagnostic disk consumption
       - name: Local EAS Build
         run: eas build --local --non-interactive --platform android --profile preview
         env:
-          EAS_BUILD_VERBOSE: "1"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      # Step 12: Upload Generated Build Artifacts
+      # Step 9: Save the compilation output
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
