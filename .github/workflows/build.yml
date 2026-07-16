@@ -1,4 +1,4 @@
-name: Build Android v0.3.4
+name: Build Android v0.4
 
 on:
   push:
@@ -9,9 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-26.04
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@master
         with:
@@ -22,6 +19,19 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Additional Targeted Cleanup
+        run: |
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/lib/android/sdk/ndk # Wipes heavy NDK files Expo builds don't need
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          df -h
 
       - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
@@ -35,18 +45,8 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # Combined Cache for Gradle, Android SDK Environment, and Metro Bundler
-      - name: Cache Build Environments
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.android
-            ~/.metro-cache
-          key: ${{ runner.os }}-expo-env-${{ hashFiles('package-lock.json', '**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-expo-env-
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       # Install dependencies (utilizes npm cache layer configured above)
       - name: Install dependencies
@@ -74,4 +74,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: "*.apk"
+          path: "android/app/build/outputs/apk/**/*.apk"
