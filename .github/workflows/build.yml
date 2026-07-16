@@ -1,4 +1,4 @@
-name: Build Android v0.3.1
+name: Build Android v0.3.2
 
 on:
   push:
@@ -11,6 +11,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Crucial Step: Erase unused pre-installed runner software to maximize disk space
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-31
+          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-32
+          sudo rm -rf /usr/local/lib/android/sdk/platforms/android-33
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          df -h # Prints remaining storage to the console logs for validation
 
       - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
