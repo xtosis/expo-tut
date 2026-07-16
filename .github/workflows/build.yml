@@ -1,0 +1,57 @@
+name: Build Android v0.1
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' # Automates local npm registry caching
+
+      - name: Setup Java 17 (Zulu)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # Combined Cache for Gradle, Android SDK Environment, and Metro Bundler
+      - name: Cache Build Environments
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android
+            ~/.metro-cache
+          key: ${{ runner.os }}-expo-env-${{ hashFiles('package-lock.json', '**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-env-
+
+      # Install dependencies (utilizes npm cache layer configured above)
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Expo CLI & EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: 20.x
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Local EAS Build
+        run: eas build --local --non-interactive --platform android --profile preview
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: "*.apk"
