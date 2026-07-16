@@ -1,4 +1,4 @@
-name: Build Android v0.4
+name: Build Android v0.4.1
 
 on:
   push:
@@ -28,7 +28,6 @@ jobs:
           sudo rm -rf /usr/local/share/boost
           sudo rm -rf /usr/local/share/chromium
           sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo rm -rf /usr/local/lib/android/sdk/ndk # Wipes heavy NDK files Expo builds don't need
           sudo apt-get clean
           sudo rm -rf /var/lib/apt/lists/*
           df -h
