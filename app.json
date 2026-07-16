@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8dd865a0-fc88-444a-870d-f099e6abe387"
+      }
+    },
+    "owner": "arminexpo"
   }
 }
