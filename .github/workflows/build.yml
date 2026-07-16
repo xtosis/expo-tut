@@ -1,4 +1,4 @@
-name: Build Android v0.4.1
+name: Build Android v0.5
 
 on:
   push:
@@ -9,20 +9,29 @@ jobs:
   build:
     runs-on: ubuntu-26.04
     steps:
+      # Step 1: Maximize build space completely (Android set to true to wipe massive pre-installed images)
       - name: Maximize Build Space
         uses: easimon/maximize-build-space@master
         with:
           root-reserve-mb: 5120
           swap-size-mb: 1024
           remove-dotnet: 'true'
-          remove-android: 'false' # Keeps essential Android SDK tools but frees space elsewhere
+          remove-android: 'true' # Wipes massive unneeded SDK pieces
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
 
+      # Step 2: Restore the exact empty NDK folder structure that EAS checks for
+      - name: Recreate Android NDK Base Directory
+        run: |
+          sudo mkdir -p /usr/local/lib/android/sdk/ndk/27.3.13750724
+          sudo chmod -R 777 /usr/local/lib/android/sdk
+
+      # Step 3: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 4: Clean up additional heavy desktop packages
       - name: Additional Targeted Cleanup
         run: |
           sudo rm -rf /usr/local/share/boost
@@ -32,22 +41,24 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           df -h
 
+      # Step 5: Setup Node.js
       - name: Setup Node.js (v24)
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'npm' # Automates local npm registry caching
+          cache: 'npm'
 
+      # Step 6: Setup Java
       - name: Setup Java 17 (Zulu)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
+      # Step 7: Auto-managed Gradle caching
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Install dependencies (utilizes npm cache layer configured above)
       - name: Install dependencies
         run: npm install
 
@@ -57,18 +68,22 @@ jobs:
           eas-version: 21.x
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Limit Gradle Memory Allocation
+      # Step 8: Strict memory limits & aggressive Gradle build caching parameters
+      - name: Configure Production Gradle Options
         run: |
           mkdir -p android
-          echo "org.gradle.jvmargs=-Xmx2548m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3072m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
           echo "org.gradle.daemon=false" >> android/gradle.properties
+          echo "android.defaults.buildfeatures.buildconfig=true" >> android/gradle.properties
 
+      # Step 9: Execute local EAS build with explicit garbage collection flags
       - name: Local EAS Build
         run: eas build --local --non-interactive --platform android --profile preview
         env:
           EAS_BUILD_VERBOSE: "1"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+      # Step 10: Upload Generated Build Artifacts
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
