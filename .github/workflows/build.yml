@@ -1,4 +1,4 @@
-name: Build Android v0.8.1
+name: Build Android v0.8.2
 
 on:
   push:
@@ -78,14 +78,12 @@ jobs:
           echo "android.defaults.buildfeatures.buildconfig=true" >> android/gradle.properties
           echo "org.gradle.vfs.watch=false" >> android/gradle.properties
 
-      # Step 8: Build with strict inline memory arguments to prevent daemon OOM crashes
+      # Step 8: Build using GRADLE_OPTS environment variables to enforce RAM safety boundaries
       - name: Local EAS Build
-        run: |
-          eas build --local --non-interactive --platform android --profile preview \
-            --gradle-args "-Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.daemon=false"
+        run: eas build --local --non-interactive --platform android --profile preview
         env:
           NODE_OPTIONS: "--max-old-space-size=2048"
-
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.daemon=false"
 
       # Step 9: Save the compilation output
       - name: Upload APK Artifact
