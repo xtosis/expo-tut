@@ -1,4 +1,4 @@
-name: Build Android v0.3.2
+name: Build Android v0.8
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       # Step 1: Redirect GitHub runner logging space BEFORE it can overflow
       # This links the restricted diagnostic directory to the massive /tmp system partition
